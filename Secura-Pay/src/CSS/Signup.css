@@ -67,3 +67,25 @@ button{
     cursor: pointer;
     margin: 10px 0;
 }
+
+.forgot-and-signup  {
+display: flex;
+justify-content: space-between;
+
+}
+
+.forgot-and-signup span  {
+  font-size: 14px; /* Optional: Adjust text size */
+margin-top: 5%;  
+}
+.already-account{
+     font-size: 14px; /* Optional: Adjust text size */
+margin-top: 5%;  
+}
+
+.forgot-and-signup span a {
+ 
+  text-decoration: none;
+}
+
+

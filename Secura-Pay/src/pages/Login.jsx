@@ -83,9 +83,14 @@ const Login = () => {
                />
              </div>
              <button type="submit">Login</button>
-             <span>
-               Does't have an account ?<Link to="/signup">Signup</Link>
-             </span>
+             <div className="forgot-and-signup">
+               <span>
+                 Does't have an account ?<Link to="/signup">Signup</Link>{" "}
+               </span>
+               <span>
+                 <Link to="/forgot-password">Forgot Password?</Link>
+               </span>
+             </div>
            </form>
            <ToastContainer />
          </div>

@@ -120,9 +120,11 @@ const Signup = () => {
             />
           </div>
           <button type="submit">Signup</button>
-          <span>
-            Already Have an Account? <Link to="/login">Login</Link>
-          </span>
+          <div className="already-account">
+            <span>
+              Already Have an Account? <Link to="/login">Login</Link>
+            </span>
+          </div>
         </form>
         <ToastContainer />
       </div>

@@ -24,6 +24,7 @@ const userSchema = new schema({
     required: true,
     unique: true,
   },
+  resetPasswordExpiration: { type: Date, default: null },
 });
 
 const UserModel = mongoose.model("users", userSchema);
