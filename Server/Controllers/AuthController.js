@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const signup = async (req, res) => {
   try {
-    const { name,username, email, password, phone } = req.body;
+    const { name, username, email, password, phone } = req.body;
 
     // Check if the user already exists
     const user = await UserModel.findOne({ email });
@@ -16,7 +16,7 @@ const signup = async (req, res) => {
     }
 
     // Create a new user
-    const userModel = new UserModel({ name,username, email, password, phone });
+    const userModel = new UserModel({ name, username, email, password, phone });
 
     // Hash the password before saving
     userModel.password = await bcrypt.hash(password, 10);
@@ -43,12 +43,20 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
- const user = await UserModel.findOne({ email });
+    const user = await UserModel.findOne({ email });
     const errorMsg = "Invalid credentials"; // More generic error message
-   
+
     if (!user) {
       return res.status(403).json({
         message: errorMsg,
+        success: false,
+      });
+    }
+
+    // Check if the user's email is verified
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message: "Please verify your email address before logging in.",
         success: false,
       });
     }
@@ -85,7 +93,6 @@ const login = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   signup,

@@ -25,6 +25,9 @@ const userSchema = new schema({
     unique: true,
   },
   resetPasswordExpiration: { type: Date, default: null },
+  otp: { type: String, default: null },
+  otpExpiration: { type: Date, default: null },
+  isVerified: { type: Boolean, default: false },
 });
 
 const UserModel = mongoose.model("users", userSchema);

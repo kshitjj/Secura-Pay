@@ -153,4 +153,184 @@ router.post("/reset-password/:userId", async (req, res) => {
   }
 });
 
+// Generate OTP expiration timestamp
+const generateExpiryTimestampOtp = () => {
+  const expirationTime = new Date();
+  expirationTime.setMinutes(expirationTime.getMinutes() + 5); // Set expiration to 5 minutes
+  return expirationTime;
+};
+
+// Define your OTP generation function
+const generateOTP = () => {
+  const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+  return otp.toString();
+};
+
+router.post("/send-otp", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    console.log("Received email:", email);
+
+    // Generate OTP and expiration time
+    const otp = generateOTP();
+    const otpExpiration = generateExpiryTimestampOtp();
+
+    // Ensure user exists and update OTP and expiration
+    let user = await UserModel.findOneAndUpdate(
+      { email },
+      { otp, otpExpiration }, // Store OTP and its expiration
+      { new: true, upsert: true } // Update existing user or create a new one
+    );
+
+    console.log("Updated/Created user with OTP:", user);
+
+    if (!user) {
+      return res.status(500).json({ error: "Failed to create/update user." });
+    }
+
+    // Send OTP via email
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER, // Ensure this is correct
+        pass: process.env.EMAIL_PASS, // Ensure this is correct
+      },
+    });
+
+    const mailOptions = {
+      from: "securapay@gmail.com", // Replace with your email
+      to: email, // The email passed in the request
+      subject: "Your OTP for Signup",
+      text: `Your OTP is: ${otp}. It will expire in 5 minutes.`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending OTP email:", error);
+        return res.status(500).json({ error: "Error sending OTP email" });
+      }
+      console.log("OTP email sent:", info.response);
+      res.status(200).json({ message: "OTP sent to your email" });
+    });
+
+    // Check if the user is already verified
+    if (user.isVerified) {
+      return res
+        .status(400)
+        .json({ error: "Email is already registered and verified" });
+    }
+  } catch (error) {
+    console.error("Error sending OTP:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/verify-otp", async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ error: "Email and OTP are required" });
+  }
+
+  try {
+    const user = await UserModel.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Validate OTP
+    if (!user.otp || user.otp !== otp || new Date() > user.otpExpiration) {
+      user.failedAttempts = (user.failedAttempts || 0) + 1;
+      await user.save();
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+
+    // OTP verified successfully
+    user.isVerified = true;
+    user.otp = null; // Clear OTP after successful verification
+    user.otpExpiration = null; // Clear expiration time
+    user.failedAttempts = 0; // Reset failed attempts
+    await user.save();
+
+    // Respond with a success message and a flag to redirect to the login page
+    res.status(200).json({
+      message: "OTP verified successfully",
+      redirectToLogin: true,
+    });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+// Route: Resend OTP
+router.post("/resend-otp", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await UserModel.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    // Allow sending OTP even if email is verified (this should be handled by OTP sending logic)
+    // You can also add a check to ensure the user has not requested OTP too frequently (e.g., cooldown).
+    if (!user.isVerified) {
+      // Trigger the OTP sending process
+      const otp = generateOTP(); // Your OTP generation logic here
+      const otpExpiration = generateExpiryTimestampOtp();
+
+      // Save new OTP and expiration time
+      user.otp = otp;
+      user.otpExpiration = otpExpiration;
+      await user.save();
+
+      // Send OTP via email
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER, 
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      const mailOptions = {
+        from: "securapay@gmail.com",
+        to: email,
+        subject: "Your OTP for Signup",
+        text: `Your OTP is: ${otp}. It will expire in 5 minutes.`,
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Error sending OTP email:", error);
+          return res.status(500).json({ error: "Error sending OTP email" });
+        }
+        console.log("OTP email sent:", info.response);
+        res.status(200).json({ message: "OTP sent to your email" });
+      });
+    } else {
+      return res.status(200).json({
+        message: "Email is already verified.",
+        success: false,
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+
 module.exports = router;

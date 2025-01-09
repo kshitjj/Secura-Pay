@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify"; // import toast for notifications
 import "react-toastify/dist/ReactToastify.css"; // import styles
 import "../CSS/Signup.css";
-import { handleError, handleSuccess } from "../utilis";
 
 const Signup = () => {
   const [SignupInfo, setSignupInfo] = useState({
@@ -13,6 +12,8 @@ const Signup = () => {
     password: "",
     phone: "",
   });
+  const [loading, setLoading] = useState(false); // New state to track loading status
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,18 +22,19 @@ const Signup = () => {
       [name]: value,
     }));
   };
-  const navigate = useNavigate();
+
   const handleSignup = async (e) => {
     e.preventDefault();
     const { name, username, email, password, phone } = SignupInfo;
 
     if (!name || !username || !email || !password || !phone) {
-      return handleError(
-        "Name,username, email, password, and phone are required"
-      );
+      return toast.error("All fields are required!");
     }
 
+    setLoading(true); // Start loading
+
     try {
+      // Step 1: Sign up the user (create account)
       const url = "http://localhost:8080/auth/signup";
       const response = await fetch(url, {
         method: "POST",
@@ -43,22 +45,41 @@ const Signup = () => {
       });
 
       const result = await response.json();
-      console.log(result);
-      const { success, message, error } = result;
+      console.log(result); // Log the result to check the response from signup API
+
+      const { success, message } = result;
+
       if (success) {
-        handleSuccess(message);
-        setTimeout(() => {
-          navigate("/login");
-        }, 1000);
-      } else if (error) {
-        const details = error?.details[0].message;
-        handleError(details);
-      } else if (!success) {
-        handleError(message);
+        // Step 2: Send OTP to the user's email
+        const otpResponse = await fetch("http://localhost:8080/auth/send-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }), // Send email to send OTP
+        });
+
+        const otpResult = await otpResponse.json();
+        console.log(otpResult); // Log the OTP result
+
+        if (otpResult.message === "OTP sent to your email") {
+          toast.success("Signup successful! Please verify your OTP.");
+          setTimeout(() => {
+            navigate("/otp-verification", { state: { email } }); // Pass email for OTP verification
+          }, 1000);
+        } else {
+          toast.error(
+            otpResult.error || "Error sending OTP. Please try again."
+          );
+        }
+      } else {
+        toast.error(message || "Signup failed!");
       }
     } catch (err) {
-      handleError("An error occurred. Please try again later.");
-      console.error(err); // log the error for debugging
+      console.error(err); // Log the error
+      toast.error("An error occurred. Please try again later.");
+    } finally {
+      setLoading(false); // End loading
     }
   };
 
@@ -119,7 +140,13 @@ const Signup = () => {
               value={SignupInfo.phone}
             />
           </div>
-          <button type="submit">Signup</button>
+          <button type="submit" disabled={loading}>
+            {loading ? (
+              <span className="loader"></span> // Show a loader if loading is true
+            ) : (
+              "Signup"
+            )}
+          </button>
           <div className="already-account">
             <span>
               Already Have an Account? <Link to="/login">Login</Link>
