@@ -7,13 +7,13 @@ const bcrypt = require("bcryptjs");
 require("dotenv").config(); // To load email credentials from .env file
 // Your User Model
 
-const UserModel = require("../Models/User"); // Import your User model
+const UserModel = require("../models/User"); // Import your User model
 const {
   signupvalidation,
   loginvalidation,
-} = require("../Middleware/AuthValidation");
-const { signup, login } = require("../Controllers/AuthController");
-const ensureAuthenticated = require("../Middleware/Auth"); // Middleware to check token
+} = require("../middleware/AuthValidation");
+const { signup, login } = require("../controllers/AuthController");
+const ensureAuthenticated = require("../middleware/Auth"); // middleware to check token
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const User = require("../Models/User"); 
+const User = require("../models/User"); 
 const mongoose = require("mongoose");
 
 
