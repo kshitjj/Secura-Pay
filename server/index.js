@@ -21,6 +21,6 @@ app.use(cors());
 app.use("/auth", AuthRouter);
 app.use("/products", ProductRouter);
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server is running on http://13.232.251.240:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server is running on ${PORT}`);
 });
